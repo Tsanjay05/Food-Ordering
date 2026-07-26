@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0k2v1g2" targetNamespace="http://bpmn.io/schema/bpmn" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.21.0">
+  <bpmn:process id="order-process" 
+  name="Online Food Ordering Workflow" 
+  isExecutable="true" 
+  camunda:historyTimeToLive="180">
+    <bpmn:startEvent id="StartEvent_1" name="Order Placed Event">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Activity_Payment" />
+    
+    <bpmn:serviceTask id="Activity_Payment" name="Step 1: Process Payment" camunda:delegateExpression="${callPaymentDelegate}">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Activity_Payment" targetRef="Gateway_Payment" />
+    <bpmn:exclusiveGateway id="Gateway_Payment" name="Payment Status Success?">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Payment_Success</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Payment_Failed</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:sequenceFlow id="Flow_Payment_Success" name="Yes (Success)" sourceRef="Gateway_Payment" targetRef="Activity_Kitchen">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${paymentStatus == 'SUCCESS'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:serviceTask id="Activity_Kitchen" name="Step 2: Kitchen Preparation" camunda:delegateExpression="${callKitchenDelegate}">
+      <bpmn:incoming>Flow_Payment_Success</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Activity_Kitchen" targetRef="Activity_Delivery" />
+    
+    <bpmn:serviceTask id="Activity_Delivery" name="Step 3: Assign and Deliver" camunda:delegateExpression="${callDeliveryDelegate}">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Activity_Delivery" targetRef="Activity_Complete_Success" />
+    
+    <bpmn:serviceTask id="Activity_Complete_Success" name="Complete Workflow Success" camunda:delegateExpression="${completeWorkflowDelegate}">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:endEvent id="EndEvent_Success" name="Order Process Completed">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Activity_Complete_Success" targetRef="EndEvent_Success" />
+    
+    <bpmn:sequenceFlow id="Flow_Payment_Failed" name="No (Failure)" sourceRef="Gateway_Payment" targetRef="Activity_Complete_Failed">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${paymentStatus != 'SUCCESS'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:serviceTask id="Activity_Complete_Failed" name="Complete Workflow Failure" camunda:delegateExpression="${completeWorkflowDelegate}">
+      <bpmn:incoming>Flow_Payment_Failed</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:endEvent id="EndEvent_Failed" name="Order Process Cancelled">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Activity_Complete_Failed" targetRef="EndEvent_Failed" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="order-process">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="136" y="145" width="68" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1oxk4pe_di" bpmnElement="Activity_Payment">
+        <dc:Bounds x="240" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1q3n96k_di" bpmnElement="Gateway_Payment" isMarkerVisible="true">
+        <dc:Bounds x="395" y="97" width="55" height="55" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="382" y="59.5" width="81" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_12d26f6_di" bpmnElement="Activity_Kitchen">
+        <dc:Bounds x="510" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0s4w8e1_di" bpmnElement="Activity_Delivery">
+        <dc:Bounds x="670" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1qixdpx_di" bpmnElement="Activity_Complete_Success">
+        <dc:Bounds x="830" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1b44k7z_di" bpmnElement="EndEvent_Success">
+        <dc:Bounds x="992" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="974" y="145" width="73" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1b2p84i_di" bpmnElement="Activity_Complete_Failed">
+        <dc:Bounds x="510" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_0iyl3ep_di" bpmnElement="EndEvent_Failed">
+        <dc:Bounds x="672" y="232" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="655" y="275" width="70" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="240" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="340" y="120" />
+        <di:waypoint x="395" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Payment_Success_di" bpmnElement="Flow_Payment_Success">
+        <di:waypoint x="450" y="120" />
+        <di:waypoint x="510" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="446" y="98" width="67" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Payment_Failed_di" bpmnElement="Flow_Payment_Failed">
+        <di:waypoint x="422" y="152" />
+        <di:waypoint x="422" y="250" />
+        <di:waypoint x="510" y="250" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="432" y="228" width="56" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="610" y="120" />
+        <di:waypoint x="670" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="770" y="120" />
+        <di:waypoint x="830" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="930" y="120" />
+        <di:waypoint x="992" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="610" y="250" />
+        <di:waypoint x="672" y="250" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

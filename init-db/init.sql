@@ -1,0 +1,11 @@
+CREATE DATABASE IF NOT EXISTS order_db;
+CREATE DATABASE IF NOT EXISTS payment_db;
+CREATE DATABASE IF NOT EXISTS kitchen_db;
+CREATE DATABASE IF NOT EXISTS delivery_db;
+
+GRANT ALL PRIVILEGES ON order_db.* TO 'root'@'%';
+GRANT ALL PRIVILEGES ON payment_db.* TO 'root'@'%';
+GRANT ALL PRIVILEGES ON kitchen_db.* TO 'root'@'%';
+GRANT ALL PRIVILEGES ON delivery_db.* TO 'root'@'%';
+
+FLUSH PRIVILEGES;

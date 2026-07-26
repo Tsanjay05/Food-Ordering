@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:9.0.0
+    container_name: foodsystem-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: order_db
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init-db:/docker-entrypoint-initdb.d
+    networks:
+      - foodsystem-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  activemq:
+    image: apache/activemq-classic:6.1.2
+    container_name: foodsystem-activemq
+    ports:
+      - "61616:61616" # JMS Port
+      - "8161:8161"   # Admin Web Console
+    networks:
+      - foodsystem-network
+
+  order-service:
+    build: ./order-service
+    container_name: order-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/order_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=rootpassword
+      - SPRING_ACTIVEMQ_BROKER_URL=tcp://activemq:61616
+      - SERVICES_PAYMENT_URL=http://payment-service:8082/api/payments
+      - SERVICES_KITCHEN_URL=http://kitchen-service:8083/api/kitchen
+      - SERVICES_DELIVERY_URL=http://delivery-service:8084/api/delivery
+    depends_on:
+      mysql:
+        condition: service_healthy
+      activemq:
+        condition: service_started
+    networks:
+      - foodsystem-network
+
+  payment-service:
+    build: ./payment-service
+    container_name: payment-service
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/payment_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=rootpassword
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - foodsystem-network
+
+  kitchen-service:
+    build: ./kitchen-service
+    container_name: kitchen-service
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/kitchen_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=rootpassword
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - foodsystem-network
+
+  delivery-service:
+    build: ./delivery-service
+    container_name: delivery-service
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/delivery_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=rootpassword
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - foodsystem-network
+
+  frontend:
+    build: ./frontend
+    container_name: frontend-ui
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_PROXY_TARGET=http://order-service:8081
+    depends_on:
+      - order-service
+    networks:
+      - foodsystem-network
+
+volumes:
+  mysql-data:
+
+networks:
+  foodsystem-network:
+    driver: bridge
